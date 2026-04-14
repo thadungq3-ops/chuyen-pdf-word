@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chuyển đổi PDF sang Word - Tối ưu Tiếng Việt</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
+    
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --gray: #6c757d; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .main-container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+        .control-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); height: fit-content; }
+        .dropzone { border: 2px dashed var(--primary); padding: 30px; border-radius: 10px; text-align: center; cursor: pointer; margin-bottom: 20px; background: #f0f7ff; }
+        .preview-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        #textEditor { width: 100%; height: 550px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; resize: none; font-size: 15px; line-height: 1.6; font-family: 'Times New Roman', serif; }
+        .progress-wrapper { background: #eee; border-radius: 4px; display: none; margin: 10px 0; height: 10px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--success); width: 0%; transition: 0.3s; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-convert { background: var(--primary); color: white; }
+        .btn-copy { background: var(--gray); color: white; }
+        .btn-download { background: var(--success); color: white; display: none; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">Công cụ xử lý văn bản chuyên sâu</h2>
+
+<div class="main-container">
+    <div class="control-panel">
+        <div class="dropzone" onclick="document.getElementById('fileInput').click()">
+            <strong id="fileName">Kéo thả hoặc chọn file PDF</strong>
+            <input type="file" id="fileInput" accept=".pdf" hidden>
+        </div>
+
+        <div class="progress-wrapper" id="progressWrapper">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div id="status" style="font-size: 13px; color: #666; margin-bottom: 10px;">Sẵn sàng xử lý.</div>
+
+        <div class="btn-group">
+            <button class="btn-convert" id="convertBtn">Bắt đầu chuyển đổi</button>
+            <button class="btn-copy" onclick="copyToClipboard()">Sao chép văn bản</button>
+            <button class="btn-download" id="downloadBtn" onclick="downloadWord()">Tải về file Word</button>
+        </div>
+    </div>
+
+    <div class="preview-panel">
+        <textarea id="textEditor" placeholder="Nội dung sau khi xử lý sẽ hiển thị tại đây..."></textarea>
+    </div>
+</div>
+
+<script>
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    const fileInput = document.getElementById('fileInput');
+    const textEditor = document.getElementById('textEditor');
+    const progressBar = document.getElementById('progressBar');
+    const status = document.getElementById('status');
+    const convertBtn = document.getElementById('convertBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    fileInput.onchange = () => {
+        if(fileInput.files[0]) document.getElementById('fileName').innerText = fileInput.files[0].name;
+    };
+
+    convertBtn.onclick = async () => {
+        const file = fileInput.files[0];
+        if (!file) return alert("Vui lòng chọn file!");
+
+        convertBtn.disabled = true;
+        textEditor.value = "";
+        document.getElementById('progressWrapper').style.display = 'block';
+        
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = async function() {
+            try {
+                const loadingTask = pdfjsLib.getDocument({
+                    data: reader.result,
+                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
+                    cMapPacked: true,
+                });
+
+                const pdf = await loadingTask.promise;
+                let fullText = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    status.innerText = `Đang xử lý trang ${i}/${pdf.numPages}...`;
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    
+                    // Logic xử lý ghép chữ thông minh: xóa bỏ khoảng trắng thừa giữa các ký tự đơn lẻ
+                    let pageText = textContent.items.map(item => item.str).join(""); 
+                    
+                    // Nếu trang trắng hoặc text lỗi (do là ảnh scan), dùng OCR
+                    if (pageText.replace(/\s/g, '').length < 20) {
+                        status.innerText = `Trang ${i}: Đang nhận diện hình ảnh (OCR)...`;
+                        const viewport = page.getViewport({scale: 2});
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        await page.render({canvasContext: context, viewport: viewport}).promise;
+                        
+                        const { data: { text } } = await Tesseract.recognize(canvas, 'vie');
+                        pageText = text;
+                    }
+
+                    // Hậu xử lý: Sửa lỗi rời chữ (Ví dụ: "Đ Ả N G" -> "ĐẢNG")
+                    pageText = pageText.replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1'); 
+                    
+                    fullText += pageText + "\n\n";
+                    textEditor.value = fullText;
+                    progressBar.style.width = (i / pdf.numPages * 100) + "%";
+                }
+
+                status.innerText = "Hoàn thành! Bạn có thể chỉnh sửa và tải về.";
+                downloadBtn.style.display = 'block';
+            } catch (err) {
+                status.innerText = "Có lỗi xảy ra.";
+                alert("Không thể đọc file PDF này.");
+            } finally {
+                convertBtn.disabled = false;
+            }
+        };
+    };
+
+    function copyToClipboard() {
+        textEditor.select();
+        document.execCommand('copy');
+        alert("Đã sao chép vào bộ nhớ tạm!");
+    }
+
+    function downloadWord() {
+        const content = textEditor.value.replace(/\n/g, '<br>');
+        const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>body{font-family:'Times New Roman',serif;}</style></head><body>`;
+        const footer = "</body></html>";
+        const blob = new Blob(['\ufeff', header + content + footer], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "Van_ban_da_xu_ly.doc";
+        a.click();
+    }
+</script>
+</body>
+</html>
