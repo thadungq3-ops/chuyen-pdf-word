@@ -3,65 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống OCR Tiếng Việt Chuẩn - Chống lỗi Font</title>
+    <title>Hệ thống OCR Thông Minh - Tự Sửa Lỗi Font</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        :root { --primary: #007bff; --success: #28a745; --excel: #1d6f42; --bg: #f8f9fa; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-        .sidebar { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); height: fit-content; }
-        .dropzone { border: 2px dashed var(--primary); padding: 25px; border-radius: 12px; text-align: center; cursor: pointer; background: #f0f7ff; margin-bottom: 20px; }
-        #textEditor { width: 100%; height: 650px; border: 1px solid #ddd; padding: 20px; border-radius: 10px; font-size: 16px; line-height: 1.8; font-family: 'Times New Roman', serif; outline: none; }
-        .progress-wrapper { display: none; height: 10px; background: #eee; border-radius: 5px; margin: 15px 0; overflow: hidden; }
-        .progress-bar { width: 0%; height: 100%; background: var(--success); transition: 0.3s; }
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f6f9; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .app-container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .sidebar { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.1); height: fit-content; }
+        .dropzone { border: 2px dashed var(--primary); padding: 30px; border-radius: 12px; text-align: center; cursor: pointer; background: #f8fbff; margin-bottom: 20px; transition: 0.3s; }
+        .dropzone:hover { background: #eef5ff; border-style: solid; }
+        #textEditor { width: 100%; height: 700px; border: 1px solid #ddd; padding: 20px; border-radius: 10px; font-size: 16px; line-height: 1.8; font-family: 'Times New Roman', Times, serif; outline: none; box-sizing: border-box; background: #fff; }
+        .status-msg { font-size: 13px; color: var(--danger); font-weight: bold; margin: 10px 0; min-height: 20px; }
         .btn-group { display: flex; flex-direction: column; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
-        .btn-run { background: var(--primary); }
-        .btn-word { background: var(--success); display: none; }
-        .btn-excel { background: var(--excel); display: none; }
-        select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
-        #status { font-size: 13px; color: #e74c3c; font-weight: bold; margin-bottom: 10px; }
+        button { padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; font-size: 14px; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); display: none; }
+        .btn-secondary { background: #6c757d; }
+        .progress-bar { height: 8px; background: #eee; border-radius: 4px; margin: 15px 0; display: none; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: 0.4s; }
+        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin: 5px 0 15px 0; }
     </style>
 </head>
 <body>
 
-<h2 style="text-align:center; color: #2c3e50;">OCR Tiếng Việt Chuyên Sâu</h2>
+<h2 style="text-align:center; color: #1a202c; margin-bottom: 30px;">Công cụ OCR Chuyên Sâu & Tự Sửa Lỗi Văn Bản</h2>
 
-<div class="container">
+<div class="app-container">
     <div class="sidebar">
         <div class="dropzone" onclick="document.getElementById('fileInput').click()">
-            <strong id="fileName">Tải PDF hoặc Ảnh lên</strong>
+            <strong id="fileName">Tải tài liệu lên</strong>
+            <p style="font-size: 12px; color: #666;">(Hỗ trợ PDF và Ảnh)</p>
             <input type="file" id="fileInput" accept=".pdf, image/*" hidden>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label><b>Chọn Font cho file Word:</b></label>
-            <select id="fontSelect">
-                <option value="'Times New Roman', serif">Times New Roman</option>
-                <option value="Arial, sans-serif">Arial</option>
-                <option value="'Calibri', sans-serif">Calibri</option>
-            </select>
-        </div>
+        <label><b>Định dạng Font xuất:</b></label>
+        <select id="fontSelect">
+            <option value="'Times New Roman', serif">Times New Roman (Chuẩn)</option>
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Calibri', sans-serif">Calibri</option>
+        </select>
 
-        <div id="status">Sẵn sàng.</div>
+        <div id="status" class="status-msg">Hệ thống sẵn sàng.</div>
 
-        <div class="progress-wrapper" id="progWrap">
-            <div class="progress-bar" id="progBar"></div>
+        <div class="progress-bar" id="pBar">
+            <div class="progress-fill" id="pFill"></div>
         </div>
 
         <div class="btn-group">
-            <button class="btn-run" id="startBtn">Bắt đầu nhận dạng</button>
-            <button class="btn-word" id="btnW" onclick="saveWord()">Tải file Word (.doc)</button>
-            <button class="btn-excel" id="btnE" onclick="saveExcel()">Tải file Excel (.xlsx)</button>
-            <button style="background:#6c757d" onclick="copyToClip()">Sao chép nhanh</button>
+            <button class="btn-primary" id="startBtn">BẮT ĐẦU NHẬN DẠNG</button>
+            <button class="btn-success" id="btnWord" onclick="exportWord()">Tải Word (Đã sửa lỗi)</button>
+            <button class="btn-success" id="btnExcel" onclick="exportExcel()">Tải Excel (.xlsx)</button>
+            <button class="btn-secondary" onclick="copyToClipboard()">Sao chép văn bản</button>
+            <button style="background:none; color:#666; font-size:11px; cursor:pointer;" onclick="location.reload()">Làm mới ứng dụng</button>
         </div>
     </div>
 
-    <div class="content">
-        <textarea id="textEditor" placeholder="Kết quả sẽ hiển thị tại đây..."></textarea>
+    <div class="main-content">
+        <textarea id="textEditor" placeholder="Nội dung sau khi quét và sửa lỗi sẽ hiện ở đây..."></textarea>
     </div>
 </div>
 
@@ -71,8 +72,9 @@
 
     const fileInput = document.getElementById('fileInput');
     const textEditor = document.getElementById('textEditor');
-    const progBar = document.getElementById('progBar');
     const status = document.getElementById('status');
+    const pBar = document.getElementById('pBar');
+    const pFill = document.getElementById('pFill');
 
     fileInput.onchange = () => { if(fileInput.files[0]) document.getElementById('fileName').innerText = fileInput.files[0].name; };
 
@@ -80,91 +82,103 @@
         const file = fileInput.files[0];
         if (!file) return alert("Vui lòng chọn file!");
         
-        setLoading(true);
+        toggleLoading(true);
         if (file.type === "application/pdf") {
-            await handlePDF(file);
+            await processPDF(file);
         } else {
-            await handleImage(file);
+            await processImage(file);
         }
     };
 
-    async function handleImage(file) {
-        status.innerText = "Đang quét ảnh bằng AI...";
+    async function processImage(file) {
+        status.innerText = "Đang xử lý ảnh & phát hiện lỗi font...";
         const { data: { text } } = await Tesseract.recognize(file, 'vie');
-        textEditor.value = smartFix(text);
-        finish();
+        textEditor.value = deepClean(text);
+        complete();
     }
 
-    async function handlePDF(file) {
+    async function processPDF(file) {
         const reader = new FileReader();
         reader.readAsArrayBuffer(file);
         reader.onload = async function() {
             const pdf = await pdfjsLib.getDocument({data: reader.result, cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/', cMapPacked: true}).promise;
-            let result = "";
+            let output = "";
             for (let i = 1; i <= pdf.numPages; i++) {
-                status.innerText = `Đang đọc trang ${i}/${pdf.numPages}`;
+                status.innerText = `Đang phân tích trang ${i}/${pdf.numPages}`;
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                let txt = textContent.items.map(s => s.str).join(" ");
+                let rawText = textContent.items.map(s => s.str).join(" ");
 
-                if (txt.length < 20) { // Nếu trang là ảnh scan
-                    const canvas = await pdfToCanvas(page);
+                if (rawText.replace(/\s/g, '').length < 30) {
+                    const canvas = await renderPageToCanvas(page);
                     const { data: { text } } = await Tesseract.recognize(canvas, 'vie');
-                    txt = text;
+                    rawText = text;
                 }
-                result += smartFix(txt) + "\n\n";
-                textEditor.value = result;
-                progBar.style.width = (i / pdf.numPages * 100) + "%";
+                output += deepClean(rawText) + "\n\n";
+                textEditor.value = output;
+                pFill.style.width = (i / pdf.numPages * 100) + "%";
             }
-            finish();
+            complete();
         };
     }
 
-    // THUẬT TOÁN SỬA LỖI FONT & RỜI CHỮ
-    function smartFix(str) {
+    // THUẬT TOÁN HẬU XỬ LÝ CHUYÊN SÂU
+    function deepClean(str) {
         if (!str) return "";
-        return str
-            .replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1') // Ghép các chữ cái rời: Đ Ả N G -> ĐẢNG
-            .replace(/\s{2,}/g, ' ')                      // Xóa khoảng trắng kép
-            .replace(/(\w)\s([.,!?:])/g, '$1$2')          // Sửa lỗi cách dấu câu: "chữ ." -> "chữ."
+        let text = str.normalize('NFC'); // Chuẩn hóa Unicode (sửa lỗi dấu rời)
+        
+        return text
+            // 1. Sửa lỗi rời chữ (Đ Ả N G -> ĐẢNG)
+            .replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1')
+            .replace(/([a-zà-ỹ])\s(?=[a-zà-ỹ]\s)/g, '$1')
+            
+            // 2. Sửa lỗi nhận diện nhầm ký tự (Heuristic)
+            .replace(/([a-zà-ỹ])0/g, '$1o') // Chữ thường + số 0 -> chữ o
+            .replace(/0([a-zà-ỹ])/g, 'o$1') // Số 0 + chữ thường -> chữ o
+            .replace(/\|/g, 'I')            // Thanh đứng thường là chữ I
+            
+            // 3. Chuẩn hóa dấu câu & khoảng trắng
+            .replace(/\s{2,}/g, ' ')         // Xóa khoảng trắng thừa
+            .replace(/\s([.,!?:;])/g, '$1')  // Xóa khoảng trắng trước dấu câu
+            .replace(/\n\s*\n/g, '\n\n')     // Giữ lại tối đa 2 dòng trống
             .trim();
     }
 
-    async function pdfToCanvas(page) {
-        const viewport = page.getViewport({scale: 2});
+    async function renderPageToCanvas(page) {
+        const viewport = page.getViewport({scale: 2.5});
         const canvas = document.createElement('canvas');
         canvas.height = viewport.height; canvas.width = viewport.width;
         await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
         return canvas;
     }
 
-    function setLoading(is) {
-        document.getElementById('progWrap').style.display = is ? 'block' : 'none';
-        document.getElementById('btnW').style.display = document.getElementById('btnE').style.display = 'none';
-        progBar.style.width = "0%";
+    function toggleLoading(isLoading) {
+        pBar.style.display = isLoading ? 'block' : 'none';
+        document.getElementById('btnWord').style.display = document.getElementById('btnExcel').style.display = 'none';
+        pFill.style.width = "0%";
     }
 
-    function finish() {
-        status.innerText = "Hoàn thành!";
-        document.getElementById('btnW').style.display = document.getElementById('btnE').style.display = 'block';
+    function complete() {
+        status.innerText = "Xử lý & Sửa lỗi hoàn tất!";
+        document.getElementById('btnWord').style.display = document.getElementById('btnExcel').style.display = 'block';
     }
 
-    function saveWord() {
+    function exportWord() {
         const font = document.getElementById('fontSelect').value;
-        const html = `<html><head><meta charset='utf-8'><style>body{font-family:${font}; line-height:1.6;}</style></head><body>${textEditor.value.replace(/\n/g, '<br>')}</body></html>`;
+        const html = `<html><head><meta charset='utf-8'><style>body{font-family:${font}; line-height:1.6; text-align:justify;}</style></head><body>${textEditor.value.replace(/\n/g, '<br>')}</body></html>`;
         const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Van_ban_OCR.doc"; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Tai_lieu_Sua_Loi.doc"; a.click();
     }
 
-    function saveExcel() {
-        const rows = textEditor.value.split('\n').map(r => [r]);
+    function exportExcel() {
+        const rows = textEditor.value.split('\n').filter(r => r.trim()).map(r => [r]);
         const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu");
-        XLSX.writeFile(wb, "Du_lieu_Excel.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "OCR_Data");
+        XLSX.writeFile(wb, "Du_lieu_Chuan.xlsx");
     }
 
-    function copyToClip() { textEditor.select(); document.execCommand('copy'); alert("Đã sao chép!"); }
+    function copyToClipboard() { textEditor.select(); document.execCommand('copy'); alert("Đã sao chép văn bản sạch vào bộ nhớ!"); }
 </script>
 </body>
 </html>
