@@ -2,79 +2,66 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Hệ thống OCR Đa Năng - Xuất Word & Excel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống OCR Tiếng Việt Chuẩn - Chống lỗi Font</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
-        :root { --primary: #007bff; --success: #28a745; --orange: #fd7e14; --excel: #1d6f42; --gray: #6c757d; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
-        .main-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-        .control-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); height: fit-content; }
-        .dropzone { border: 2px dashed var(--primary); padding: 20px; border-radius: 10px; text-align: center; cursor: pointer; margin-bottom: 15px; background: #f0f7ff; transition: 0.3s; }
-        .dropzone:hover { background: #e1efff; }
-        .preview-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        #textEditor { width: 100%; height: 620px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; resize: none; font-size: 16px; line-height: 1.6; outline: none; box-sizing: border-box; font-family: 'Times New Roman', serif; }
-        
-        .setting-item { margin-bottom: 15px; }
-        .setting-item label { font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px; }
-        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; background: #fff; }
-
-        .progress-wrapper { background: #eee; border-radius: 4px; display: none; margin: 15px 0; height: 10px; overflow: hidden; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); width: 0%; transition: 0.3s; }
-        
+        :root { --primary: #007bff; --success: #28a745; --excel: #1d6f42; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .sidebar { background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); height: fit-content; }
+        .dropzone { border: 2px dashed var(--primary); padding: 25px; border-radius: 12px; text-align: center; cursor: pointer; background: #f0f7ff; margin-bottom: 20px; }
+        #textEditor { width: 100%; height: 650px; border: 1px solid #ddd; padding: 20px; border-radius: 10px; font-size: 16px; line-height: 1.8; font-family: 'Times New Roman', serif; outline: none; }
+        .progress-wrapper { display: none; height: 10px; background: #eee; border-radius: 5px; margin: 15px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--success); transition: 0.3s; }
         .btn-group { display: flex; flex-direction: column; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; font-size: 14px; }
-        .btn-process { background: var(--primary); }
+        button { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        .btn-run { background: var(--primary); }
         .btn-word { background: var(--success); display: none; }
         .btn-excel { background: var(--excel); display: none; }
-        .btn-copy { background: var(--gray); }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        button:disabled { background: #ccc; transform: none; }
-        
-        #status { font-size: 13px; color: #d63031; font-weight: bold; margin-bottom: 10px; min-height: 18px; }
+        select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        #status { font-size: 13px; color: #e74c3c; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<h2 style="text-align:center; color: #2c3e50; margin-bottom: 25px;">Hệ thống Chuyển đổi Đa phương thức (Word & Excel)</h2>
+<h2 style="text-align:center; color: #2c3e50;">OCR Tiếng Việt Chuyên Sâu</h2>
 
-<div class="main-container">
-    <div class="control-panel">
+<div class="container">
+    <div class="sidebar">
         <div class="dropzone" onclick="document.getElementById('fileInput').click()">
-            <strong id="fileName">Chọn PDF hoặc Hình ảnh</strong>
-            <p style="font-size: 11px; color: #777; margin-top: 5px;">(Hỗ trợ quét chữ Tiếng Việt)</p>
+            <strong id="fileName">Tải PDF hoặc Ảnh lên</strong>
             <input type="file" id="fileInput" accept=".pdf, image/*" hidden>
         </div>
 
-        <div class="setting-item">
-            <label>Font chữ hiển thị & xuất Word:</label>
-            <select id="fontFamily">
-                <option value="'Times New Roman', Times, serif">Times New Roman (Chuẩn)</option>
+        <div style="margin-bottom: 15px;">
+            <label><b>Chọn Font cho file Word:</b></label>
+            <select id="fontSelect">
+                <option value="'Times New Roman', serif">Times New Roman</option>
                 <option value="Arial, sans-serif">Arial</option>
                 <option value="'Calibri', sans-serif">Calibri</option>
-                <option value="'Roboto', sans-serif">Roboto</option>
             </select>
         </div>
 
         <div id="status">Sẵn sàng.</div>
 
-        <div class="progress-wrapper" id="progressWrapper">
-            <div class="progress-bar" id="progressBar"></div>
+        <div class="progress-wrapper" id="progWrap">
+            <div class="progress-bar" id="progBar"></div>
         </div>
 
         <div class="btn-group">
-            <button class="btn-process" id="startBtn">Bắt đầu Xử lý (OCR)</button>
-            <button class="btn-word" id="dlWord" onclick="downloadWord()">Tải về file Word (.doc)</button>
-            <button class="btn-excel" id="dlExcel" onclick="downloadExcel()">Tải về file Excel (.xlsx)</button>
-            <button class="btn-copy" onclick="copyText()">Sao chép văn bản</button>
-            <button style="background:#eee; color:#333; font-size: 12px;" onclick="location.reload()">Làm mới trang</button>
+            <button class="btn-run" id="startBtn">Bắt đầu nhận dạng</button>
+            <button class="btn-word" id="btnW" onclick="saveWord()">Tải file Word (.doc)</button>
+            <button class="btn-excel" id="btnE" onclick="saveExcel()">Tải file Excel (.xlsx)</button>
+            <button style="background:#6c757d" onclick="copyToClip()">Sao chép nhanh</button>
         </div>
     </div>
 
-    <div class="preview-panel">
-        <textarea id="textEditor" placeholder="Kết quả quét chữ sẽ hiển thị tại đây. Bạn có thể chỉnh sửa trước khi tải về..."></textarea>
+    <div class="content">
+        <textarea id="textEditor" placeholder="Kết quả sẽ hiển thị tại đây..."></textarea>
     </div>
 </div>
 
@@ -84,125 +71,100 @@
 
     const fileInput = document.getElementById('fileInput');
     const textEditor = document.getElementById('textEditor');
-    const progressBar = document.getElementById('progressBar');
+    const progBar = document.getElementById('progBar');
     const status = document.getElementById('status');
-    const fontSelect = document.getElementById('fontFamily');
-    const btnWord = document.getElementById('dlWord');
-    const btnExcel = document.getElementById('dlExcel');
 
-    // Cập nhật font ngay lập tức khi chọn
-    fontSelect.onchange = () => { textEditor.style.fontFamily = fontSelect.value; };
-
-    fileInput.onchange = () => {
-        if(fileInput.files[0]) document.getElementById('fileName').innerText = fileInput.files[0].name;
-    };
+    fileInput.onchange = () => { if(fileInput.files[0]) document.getElementById('fileName').innerText = fileInput.files[0].name; };
 
     document.getElementById('startBtn').onclick = async () => {
         const file = fileInput.files[0];
-        if (!file) return alert("Vui lòng chọn file trước!");
-
+        if (!file) return alert("Vui lòng chọn file!");
+        
         setLoading(true);
-        if (file.type.startsWith("image/")) {
-            await runOCR(file);
+        if (file.type === "application/pdf") {
+            await handlePDF(file);
         } else {
-            await runPDF(file);
+            await handleImage(file);
         }
     };
 
-    async function runOCR(source) {
-        try {
-            status.innerText = "Đang nhận diện chữ viết...";
-            const { data: { text } } = await Tesseract.recognize(source, 'vie');
-            textEditor.value = cleanText(text);
-            finishProcess();
-        } catch (e) { alert("Lỗi quét ảnh!"); setLoading(false); }
+    async function handleImage(file) {
+        status.innerText = "Đang quét ảnh bằng AI...";
+        const { data: { text } } = await Tesseract.recognize(file, 'vie');
+        textEditor.value = smartFix(text);
+        finish();
     }
 
-    async function runPDF(file) {
+    async function handlePDF(file) {
         const reader = new FileReader();
         reader.readAsArrayBuffer(file);
         reader.onload = async function() {
-            try {
-                const pdf = await pdfjsLib.getDocument({
-                    data: reader.result,
-                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/',
-                    cMapPacked: true,
-                }).promise;
+            const pdf = await pdfjsLib.getDocument({data: reader.result, cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/', cMapPacked: true}).promise;
+            let result = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                status.innerText = `Đang đọc trang ${i}/${pdf.numPages}`;
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                let txt = textContent.items.map(s => s.str).join(" ");
 
-                let fullText = "";
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    status.innerText = `Xử lý trang ${i}/${pdf.numPages}`;
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    let pageText = textContent.items.map(item => item.str).join(" ");
-
-                    if (pageText.length < 25) { // Nếu trang là ảnh scan
-                        status.innerText = `Trang ${i}: Đang quét OCR...`;
-                        const canvas = await pageToCanvas(page);
-                        const { data: { text } } = await Tesseract.recognize(canvas, 'vie');
-                        pageText = text;
-                    }
-                    fullText += cleanText(pageText) + "\n\n";
-                    textEditor.value = fullText;
-                    progressBar.style.width = (i / pdf.numPages * 100) + "%";
+                if (txt.length < 20) { // Nếu trang là ảnh scan
+                    const canvas = await pdfToCanvas(page);
+                    const { data: { text } } = await Tesseract.recognize(canvas, 'vie');
+                    txt = text;
                 }
-                finishProcess();
-            } catch (e) { alert("Lỗi PDF!"); setLoading(false); }
-        }
+                result += smartFix(txt) + "\n\n";
+                textEditor.value = result;
+                progBar.style.width = (i / pdf.numPages * 100) + "%";
+            }
+            finish();
+        };
     }
 
-    async function pageToCanvas(page) {
+    // THUẬT TOÁN SỬA LỖI FONT & RỜI CHỮ
+    function smartFix(str) {
+        if (!str) return "";
+        return str
+            .replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1') // Ghép các chữ cái rời: Đ Ả N G -> ĐẢNG
+            .replace(/\s{2,}/g, ' ')                      // Xóa khoảng trắng kép
+            .replace(/(\w)\s([.,!?:])/g, '$1$2')          // Sửa lỗi cách dấu câu: "chữ ." -> "chữ."
+            .trim();
+    }
+
+    async function pdfToCanvas(page) {
         const viewport = page.getViewport({scale: 2});
         const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
         canvas.height = viewport.height; canvas.width = viewport.width;
-        await page.render({canvasContext: context, viewport: viewport}).promise;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
         return canvas;
     }
 
-    function cleanText(t) {
-        return t.replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1').trim();
+    function setLoading(is) {
+        document.getElementById('progWrap').style.display = is ? 'block' : 'none';
+        document.getElementById('btnW').style.display = document.getElementById('btnE').style.display = 'none';
+        progBar.style.width = "0%";
     }
 
-    function setLoading(isLoading) {
-        document.getElementById('progressWrapper').style.display = isLoading ? 'block' : 'none';
-        btnWord.style.display = btnExcel.style.display = 'none';
-        progressBar.style.width = "0%";
-    }
-
-    function finishProcess() {
+    function finish() {
         status.innerText = "Hoàn thành!";
-        btnWord.style.display = btnExcel.style.display = 'block';
+        document.getElementById('btnW').style.display = document.getElementById('btnE').style.display = 'block';
     }
 
-    function copyText() {
-        textEditor.select();
-        document.execCommand('copy');
-        alert("Đã sao chép văn bản!");
+    function saveWord() {
+        const font = document.getElementById('fontSelect').value;
+        const html = `<html><head><meta charset='utf-8'><style>body{font-family:${font}; line-height:1.6;}</style></head><body>${textEditor.value.replace(/\n/g, '<br>')}</body></html>`;
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Van_ban_OCR.doc"; a.click();
     }
 
-    function downloadWord() {
-        const font = fontSelect.value;
-        const content = textEditor.value.replace(/\n/g, '<br>');
-        const header = `<html><head><meta charset='utf-8'><style>body{font-family:${font}; line-height:1.5;}</style></head><body>`;
-        const blob = new Blob(['\ufeff', header + content + "</body></html>"], { type: 'application/msword' });
-        saveFile(blob, "Tai_lieu_OCR.doc");
+    function saveExcel() {
+        const rows = textEditor.value.split('\n').map(r => [r]);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Dữ liệu");
+        XLSX.writeFile(wb, "Du_lieu_Excel.xlsx");
     }
 
-    function downloadExcel() {
-        const lines = textEditor.value.split('\n').filter(l => l.trim() !== "");
-        const data = lines.map(line => [line]);
-        const worksheet = XLSX.utils.aoa_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Du_lieu_OCR");
-        XLSX.writeFile(workbook, "Du_lieu_Excel.xlsx");
-    }
-
-    function saveFile(blob, name) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = name; a.click();
-    }
+    function copyToClip() { textEditor.select(); document.execCommand('copy'); alert("Đã sao chép!"); }
 </script>
 </body>
 </html>
