@@ -3,260 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống Ghi âm - MTTQ Phường An Khánh</title>
-    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
+    <title>Hệ thống OCR Thông Minh - Tự Sửa Lỗi Font</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
-        :root {
-            --mttq-blue: #004a8c;
-            --mttq-red: #d42020;
-            --mttq-gold: #ffc107;
-        }
-
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            background-color: #e9ecef;
-            padding: 30px;
-            margin: 0;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 50px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.15);
-            border-top: 6px solid var(--mttq-red);
-        }
-
-        .header-unit {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header-unit h1 {
-            margin: 5px 0;
-            font-size: 22px;
-            color: var(--mttq-blue);
-            text-transform: uppercase;
-        }
-
-        .line-separator {
-            width: 150px;
-            height: 2px;
-            background-color: var(--mttq-blue);
-            margin: 10px auto;
-        }
-
-        /* Khu vực điều khiển */
-        .control-panel {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px dashed #ccc;
-        }
-
-        .button-group {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .upload-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #ddd;
-            text-align: center;
-        }
-
-        button {
-            font-family: 'Times New Roman', serif;
-            font-size: 15px;
-            font-weight: bold;
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            transition: all 0.3s;
-        }
-
-        .btn-start { background-color: var(--mttq-red); color: white; }
-        .btn-stop { background-color: #495057; color: white; display: none; }
-        .btn-word { background-color: #2b579a; color: white; }
-        .btn-upload { background-color: #28a745; color: white; }
-
-        input[type="file"] {
-            font-family: 'Times New Roman', serif;
-            margin-bottom: 10px;
-        }
-
-        #status-indicator {
-            text-align: center;
-            height: 30px;
-            color: var(--mttq-red);
-            font-weight: bold;
-        }
-
-        #transcript-editor {
-            width: 100%;
-            min-height: 400px;
-            border: 1px solid #adb5bd;
-            padding: 25px;
-            font-size: 14pt;
-            line-height: 1.6;
-            box-sizing: border-box;
-            text-align: justify;
-            outline: none;
-            background: #fff;
-        }
-
-        /* Audio ẩn để xử lý file */
-        #audio-player { display: none; }
+        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --bg: #f4f6f9; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .app-container { max-width: 1300px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .sidebar { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 25px rgba(0,0,0,0.1); height: fit-content; }
+        .dropzone { border: 2px dashed var(--primary); padding: 30px; border-radius: 12px; text-align: center; cursor: pointer; background: #f8fbff; margin-bottom: 20px; transition: 0.3s; }
+        .dropzone:hover { background: #eef5ff; border-style: solid; }
+        #textEditor { width: 100%; height: 700px; border: 1px solid #ddd; padding: 20px; border-radius: 10px; font-size: 16px; line-height: 1.8; font-family: 'Times New Roman', Times, serif; outline: none; box-sizing: border-box; background: #fff; }
+        .status-msg { font-size: 13px; color: var(--danger); font-weight: bold; margin: 10px 0; min-height: 20px; }
+        .btn-group { display: flex; flex-direction: column; gap: 10px; }
+        button { padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; font-size: 14px; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); display: none; }
+        .btn-secondary { background: #6c757d; }
+        .progress-bar { height: 8px; background: #eee; border-radius: 4px; margin: 15px 0; display: none; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); width: 0%; transition: 0.4s; }
+        select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin: 5px 0 15px 0; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header-unit">
-        <h2>ỦY BAN TRUNG ƯƠNG MTTQ VIỆT NAM</h2>
-        <h1>ỦY BAN MẶT TRẬN TỔ QUỐC VIỆT NAM<br>PHƯỜNG AN KHÁNH</h1>
-        <div class="line-separator"></div>
-    </div>
+<h2 style="text-align:center; color: #1a202c; margin-bottom: 30px;">Công cụ OCR Chuyên Sâu & Tự Sửa Lỗi Văn Bản</h2>
 
-    <div class="control-panel">
-        <div class="button-group">
-            <button id="startBtn" class="btn-start" onclick="startRecording()">BẮT ĐẦU GHI TRỰC TIẾP</button>
-            <button id="stopBtn" class="btn-stop" onclick="stopRecording()">DỪNG LẠI</button>
-            <button class="btn-word" onclick="exportWord()">XUẤT FILE WORD (.DOCX)</button>
+<div class="app-container">
+    <div class="sidebar">
+        <div class="dropzone" onclick="document.getElementById('fileInput').click()">
+            <strong id="fileName">Tải tài liệu lên</strong>
+            <p style="font-size: 12px; color: #666;">(Hỗ trợ PDF và Ảnh)</p>
+            <input type="file" id="fileInput" accept=".pdf, image/*" hidden>
         </div>
 
-        <div class="upload-section">
-            <p style="margin-bottom: 10px; font-weight: bold; color: var(--mttq-blue);">CHUYỂN FILE ÂM THANH CÓ SẴN (.mp3, .wav)</p>
-            <input type="file" id="audio-file" accept="audio/*">
-            <button class="btn-upload" onclick="processAudioFile()">XỬ LÝ FILE</button>
+        <label><b>Định dạng Font xuất:</b></label>
+        <select id="fontSelect">
+            <option value="'Times New Roman', serif">Times New Roman (Chuẩn)</option>
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="'Calibri', sans-serif">Calibri</option>
+        </select>
+
+        <div id="status" class="status-msg">Hệ thống sẵn sàng.</div>
+
+        <div class="progress-bar" id="pBar">
+            <div class="progress-fill" id="pFill"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-primary" id="startBtn">BẮT ĐẦU NHẬN DẠNG</button>
+            <button class="btn-success" id="btnWord" onclick="exportWord()">Tải Word (Đã sửa lỗi)</button>
+            <button class="btn-success" id="btnExcel" onclick="exportExcel()">Tải Excel (.xlsx)</button>
+            <button class="btn-secondary" onclick="copyToClipboard()">Sao chép văn bản</button>
+            <button style="background:none; color:#666; font-size:11px; cursor:pointer;" onclick="location.reload()">Làm mới ứng dụng</button>
         </div>
     </div>
 
-    <div id="status-indicator"></div>
-
-    <audio id="audio-player" controls></audio>
-    
-    <div id="transcript-editor" contenteditable="true">
-        (Nội dung văn bản sẽ xuất hiện tại đây...)
-    </div>
-
-    <div style="font-size: 12px; color: grey; text-align: center; margin-top: 20px;">
-        * Lưu ý: Khi xử lý file, hãy đảm bảo âm lượng máy tính vừa đủ để trình duyệt có thể "nghe" thấy.
+    <div class="main-content">
+        <textarea id="textEditor" placeholder="Nội dung sau khi quét và sửa lỗi sẽ hiện ở đây..."></textarea>
     </div>
 </div>
 
 <script>
-    let recognition;
-    const editor = document.getElementById('transcript-editor');
-    const status = document.getElementById('status-indicator');
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    if ('webkitSpeechRecognition' in window) {
-        recognition = new webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'vi-VN';
+    const fileInput = document.getElementById('fileInput');
+    const textEditor = document.getElementById('textEditor');
+    const status = document.getElementById('status');
+    const pBar = document.getElementById('pBar');
+    const pFill = document.getElementById('pFill');
 
-        recognition.onresult = (event) => {
-            let resultText = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    resultText += event.results[i][0].transcript + '. ';
-                }
-            }
-            if (resultText) {
-                if(editor.innerText.includes("(Nội dung")) editor.innerText = "";
-                editor.innerText += resultText.charAt(0).toUpperCase() + resultText.slice(1);
-            }
-        };
-    }
+    fileInput.onchange = () => { if(fileInput.files[0]) document.getElementById('fileName').innerText = fileInput.files[0].name; };
 
-    function startRecording() {
-        recognition.start();
-        document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('stopBtn').style.display = 'inline-block';
-        status.innerText = "🔴 HỆ THỐNG ĐANG NGHE TRỰC TIẾP...";
-    }
-
-    function stopRecording() {
-        recognition.stop();
-        document.getElementById('startBtn').style.display = 'inline-block';
-        document.getElementById('stopBtn').style.display = 'none';
-        status.innerText = "";
-        const player = document.getElementById('audio-player');
-        player.pause();
-    }
-
-    // Xử lý File Âm Thanh
-    function processAudioFile() {
-        const fileInput = document.getElementById('audio-file');
-        const player = document.getElementById('audio-player');
-
-        if (fileInput.files.length === 0) {
-            alert("Vui lòng chọn một file âm thanh trước.");
-            return;
-        }
-
+    document.getElementById('startBtn').onclick = async () => {
         const file = fileInput.files[0];
-        const url = URL.createObjectURL(file);
-        player.src = url;
-
-        // Bắt đầu nhận diện và phát file
-        if(editor.innerText.includes("(Nội dung")) editor.innerText = "";
-        status.innerText = "🔴 ĐANG XỬ LÝ DỮ LIỆU TỪ FILE...";
+        if (!file) return alert("Vui lòng chọn file!");
         
-        recognition.start();
-        player.play();
+        toggleLoading(true);
+        if (file.type === "application/pdf") {
+            await processPDF(file);
+        } else {
+            await processImage(file);
+        }
+    };
 
-        player.onended = () => {
-            stopRecording();
-            status.innerText = "✅ ĐÃ XỬ LÝ XONG FILE.";
+    async function processImage(file) {
+        status.innerText = "Đang xử lý ảnh & phát hiện lỗi font...";
+        const { data: { text } } = await Tesseract.recognize(file, 'vie');
+        textEditor.value = deepClean(text);
+        complete();
+    }
+
+    async function processPDF(file) {
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = async function() {
+            const pdf = await pdfjsLib.getDocument({data: reader.result, cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/cmaps/', cMapPacked: true}).promise;
+            let output = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                status.innerText = `Đang phân tích trang ${i}/${pdf.numPages}`;
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                let rawText = textContent.items.map(s => s.str).join(" ");
+
+                if (rawText.replace(/\s/g, '').length < 30) {
+                    const canvas = await renderPageToCanvas(page);
+                    const { data: { text } } = await Tesseract.recognize(canvas, 'vie');
+                    rawText = text;
+                }
+                output += deepClean(rawText) + "\n\n";
+                textEditor.value = output;
+                pFill.style.width = (i / pdf.numPages * 100) + "%";
+            }
+            complete();
         };
     }
 
-    async function exportWord() {
-        const content = editor.innerText;
-        const { Document, Packer, Paragraph, TextRun, AlignmentType } = docx;
-
-        const doc = new Document({
-            sections: [{
-                children: [
-                    new Paragraph({
-                        alignment: AlignmentType.CENTER,
-                        children: [
-                            new TextRun({
-                                text: "ỦY BAN MẶT TRẬN TỔ QUỐC VIỆT NAM PHƯỜNG AN KHÁNH",
-                                bold: true,
-                                font: "Times New Roman",
-                                size: 28,
-                            }),
-                        ],
-                    }),
-                    new Paragraph({ text: "", spacing: { after: 200 } }),
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: content,
-                                font: "Times New Roman",
-                                size: 28,
-                            }),
-                        ],
-                    }),
-                ],
-            }],
-        });
-
-        const blob = await Packer.toBlob(doc);
-        saveAs(blob, "Bien_ban_An_Khanh.docx");
+    // THUẬT TOÁN HẬU XỬ LÝ CHUYÊN SÂU
+    function deepClean(str) {
+        if (!str) return "";
+        let text = str.normalize('NFC'); // Chuẩn hóa Unicode (sửa lỗi dấu rời)
+        
+        return text
+            // 1. Sửa lỗi rời chữ (Đ Ả N G -> ĐẢNG)
+            .replace(/([A-ZÀ-Ỹ])\s(?=[A-ZÀ-Ỹ]\s)/g, '$1')
+            .replace(/([a-zà-ỹ])\s(?=[a-zà-ỹ]\s)/g, '$1')
+            
+            // 2. Sửa lỗi nhận diện nhầm ký tự (Heuristic)
+            .replace(/([a-zà-ỹ])0/g, '$1o') // Chữ thường + số 0 -> chữ o
+            .replace(/0([a-zà-ỹ])/g, 'o$1') // Số 0 + chữ thường -> chữ o
+            .replace(/\|/g, 'I')            // Thanh đứng thường là chữ I
+            
+            // 3. Chuẩn hóa dấu câu & khoảng trắng
+            .replace(/\s{2,}/g, ' ')         // Xóa khoảng trắng thừa
+            .replace(/\s([.,!?:;])/g, '$1')  // Xóa khoảng trắng trước dấu câu
+            .replace(/\n\s*\n/g, '\n\n')     // Giữ lại tối đa 2 dòng trống
+            .trim();
     }
-</script>
 
+    async function renderPageToCanvas(page) {
+        const viewport = page.getViewport({scale: 2.5});
+        const canvas = document.createElement('canvas');
+        canvas.height = viewport.height; canvas.width = viewport.width;
+        await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+        return canvas;
+    }
+
+    function toggleLoading(isLoading) {
+        pBar.style.display = isLoading ? 'block' : 'none';
+        document.getElementById('btnWord').style.display = document.getElementById('btnExcel').style.display = 'none';
+        pFill.style.width = "0%";
+    }
+
+    function complete() {
+        status.innerText = "Xử lý & Sửa lỗi hoàn tất!";
+        document.getElementById('btnWord').style.display = document.getElementById('btnExcel').style.display = 'block';
+    }
+
+    function exportWord() {
+        const font = document.getElementById('fontSelect').value;
+        const html = `<html><head><meta charset='utf-8'><style>body{font-family:${font}; line-height:1.6; text-align:justify;}</style></head><body>${textEditor.value.replace(/\n/g, '<br>')}</body></html>`;
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Tai_lieu_Sua_Loi.doc"; a.click();
+    }
+
+    function exportExcel() {
+        const rows = textEditor.value.split('\n').filter(r => r.trim()).map(r => [r]);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "OCR_Data");
+        XLSX.writeFile(wb, "Du_lieu_Chuan.xlsx");
+    }
+
+    function copyToClipboard() { textEditor.select(); document.execCommand('copy'); alert("Đã sao chép văn bản sạch vào bộ nhớ!"); }
+</script>
 </body>
 </html>
